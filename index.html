@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FNOL — AI Assistant (Prototype)</title>
+  <style>
+    /* Reset & base */
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#6ee7b7; --muted:#9aa4b2; --glass: rgba(255,255,255,0.04);
+      --glass-2: rgba(255,255,255,0.02);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(14,165,233,0.06), transparent 8%),
+                  linear-gradient(180deg, rgba(255,255,255,0.02), transparent 20%),
+                  var(--bg); color:#e6eef6; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      display:flex; align-items:center; justify-content:center; padding:32px;
+    }
+
+    /* Card */
+    .card{
+      width:100%; max-width:920px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:16px; padding:28px; box-shadow: 0 10px 30px rgba(2,6,23,0.7); border:1px solid rgba(255,255,255,0.03);
+      display:grid; grid-template-columns: 360px 1fr; gap:20px; align-items:stretch;
+      backdrop-filter: blur(6px);
+    }
+
+    /* Left column - info */
+    .panel{
+      background:linear-gradient(180deg,var(--glass),var(--glass-2)); padding:20px; border-radius:12px; height:100%;
+      display:flex; flex-direction:column; gap:12px; border:1px solid rgba(255,255,255,0.02);
+    }
+    .logo{display:flex; gap:12px; align-items:center}
+    .logo .mark{width:48px; height:48px; border-radius:10px; display:grid; place-items:center; font-weight:700; color:#04233a; background:linear-gradient(135deg,var(--accent),#38bdf8); box-shadow: 0 6px 18px rgba(54,211,172,0.08)}
+    h1{font-size:18px; margin:0}
+    p.lead{color:var(--muted); margin:0; font-size:13px}
+
+    .guidelines{margin-top:8px; font-size:13px; color:var(--muted); line-height:1.45}
+    .chip{display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.02); color:var(--muted); font-size:12px}
+
+    /* Chat column */
+    .chat{
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); border-radius:12px; padding:16px; height:520px; display:flex; flex-direction:column; gap:12px;
+    }
+    .messages{flex:1; overflow:auto; padding-right:6px; display:flex; flex-direction:column; gap:12px}
+
+    .msg{max-width:78%; padding:12px 14px; border-radius:12px; line-height:1.45; font-size:14px}
+    .msg.ai{align-self:flex-start; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.03); box-shadow:0 6px 18px rgba(1,9,20,0.5)}
+    .msg.user{align-self:flex-end; background:linear-gradient(180deg, rgba(6,11,22,0.6), rgba(6,11,22,0.4)); border:1px solid rgba(255,255,255,0.02)}
+    .msg .meta{font-size:12px; color:var(--muted); margin-bottom:8px}
+
+    .input-row{display:flex; gap:10px; align-items:center}
+    .input-box{flex:1; display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.02)}
+    .input-box input{flex:1; background:transparent; border:0; outline:none; color:inherit; font-size:15px}
+    .send-btn{background:linear-gradient(90deg,var(--accent),#38bdf8); border:none; padding:12px 16px; border-radius:10px; cursor:pointer; font-weight:600; color:#04233a}
+    .send-btn[disabled]{opacity:0.5; cursor:not-allowed}
+
+    /* Typing dots */
+    .typing{display:inline-flex; gap:6px; align-items:center}
+    .dot{width:8px; height:8px; border-radius:50%; background:var(--muted); opacity:0.9; transform:translateY(0)}
+    .dot:nth-child(1){animation:jump 1s infinite 0s}
+    .dot:nth-child(2){animation:jump 1s infinite 0.15s}
+    .dot:nth-child(3){animation:jump 1s infinite 0.3s}
+    @keyframes jump{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+
+    /* Subtle animations */
+    .fade-in{animation:fadeIn .32s ease both}
+    @keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+    /* small screen */
+    @media (max-width:880px){
+      .card{grid-template-columns:1fr; max-width:720px}
+      .panel{order:2}
+      .chat{order:1}
+    }
+
+    /* helper */
+    .hint{font-size:13px; color:var(--muted)}
+    .footer-note{font-size:12px; color:var(--muted); text-align:center; margin-top:6px}
+
+    /* neat summary box */
+    .summary{background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border-radius:10px; padding:12px; border:1px solid rgba(255,255,255,0.02); color:var(--muted)}
+
+    /* success badge */
+    .success{display:inline-block; padding:8px 12px; background:linear-gradient(135deg,#0f766e,#2dd4bf); color:#072f2b; font-weight:700; border-radius:999px}
+
+  </style>
+</head>
+<body>
+  <main class="card">
+    <aside class="panel">
+      <div class="logo">
+        <div class="mark">FN</div>
+        <div>
+          <h1>FNOL AI Assistant</h1>
+          <p class="lead">Quick incident reporting — describe what happened and our assistant will collect the rest.</p>
+        </div>
+      </div>
+
+      <div class="guidelines">
+        <div class="chip">One input. Tell the full story: date, time, location, what happened, injuries, photos (later), witnesses.</div>
+        <p style="margin-top:10px">The assistant will analyze your text and may ask follow-up questions if anything is missing. When complete, your claim will be saved and we will contact you.</p>
+      </div>
+
+      <div style="margin-top:auto">
+        <div class="summary">
+          <strong>What we'll extract</strong>
+          <ul style="margin:8px 0 0 18px; padding:0; color:var(--muted)">
+            <li>Date &amp; time</li>
+            <li>Location (address / coords)</li>
+            <li>Injury severity</li>
+            <li>People involved</li>
+            <li>Estimated compensation</li>
+          </ul>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:space-between">
+          <div class="hint">Prototype • will connect to Make.com webhook</div>
+          <div class="chip">Secure</div>
+        </div>
+
+        <div class="footer-note">Replace <code>WEBHOOK_URL</code> in the script with your Make.com webhook.</div>
+      </div>
+    </aside>
+
+    <section class="chat">
+      <div class="messages" id="messages" aria-live="polite"></div>
+
+      <form id="inputForm" class="input-row" onsubmit="return false;">
+        <div class="input-box">
+          <input id="userInput" placeholder="Describe the incident in full — date, location, injuries, what happened..." autocomplete="off"/>
+        </div>
+        <button id="sendBtn" class="send-btn">Send</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    /* =========================
+       CONFIG
+       Replace WEBHOOK_URL with your Make.com webhook URL
+       Expected webhook response JSON schema (example):
+       {
+         "message": "AI reply to show to user",
+         "missing_info": true|false,
+         "follow_up": "If missing_info true, ask this question",
+         "final": true|false,
+         "extracted": {"date":"2025-11-24","location":"Tashkent","injury_severity":"minor","people_involved":2, "estimate":2500}
+       }
+       Make.com should call OpenAI, parse / iterate and return the JSON above.
+       =========================*/
+
+    const WEBHOOK_URL = 'https://hook.eu1.make.com/bpit71yrwfgjhp2sfrj6ou41tmwmmozm'; // <- replace this
+
+    const messagesEl = document.getElementById('messages');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    let conversation = JSON.parse(localStorage.getItem('conversation') || '[]');
+    
+    function appendMessage(role, text, meta) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + (role === 'user' ? 'user' : 'ai') + ' fade-in';
+
+      if (meta && meta.title) {
+        const m = document.createElement('div'); m.className = 'meta'; m.textContent = meta.title; div.appendChild(m);
+      }
+
+      const p = document.createElement('div');
+      p.innerHTML = text.replace(/\n/g,'<br>');
+      div.appendChild(p);
+
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function appendTyping(){
+      const div = document.createElement('div');
+      div.className = 'msg ai typing-wrapper';
+      div.id = 'typing';
+      div.innerHTML = '<div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    function removeTyping(){ const t = document.getElementById('typing'); if(t) t.remove(); }
+
+    async function sendToWebhook(text){
+      // send conversation + latest user text
+      const payload = {
+        conversation: conversation.slice(-10), // last 10 turns
+        latest: text
+      };
+
+      try{
+        const res = await fetch(WEBHOOK_URL, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+        });
+        if(!res.ok){
+          throw new Error('Network response not ok: '+res.status);
+        }
+        const data = await res.json();
+        return data;
+      }catch(err){
+        console.error(err);
+        return { message: 'Unable to reach the server. Please try again later.', missing_info:false, final:false };
+      }
+    }
+
+    async function handleSend(){
+      const text = userInput.value.trim();
+      if(!text) return;
+      // add user message
+      appendMessage('user', text);
+      conversation.push({role:'user', text});
+      localStorage.setItem('conversation', JSON.stringify(conversation));
+      userInput.value='';
+      sendBtn.disabled = true;
+      appendTyping();
+
+      const response = await sendToWebhook(text);
+
+      removeTyping();
+      sendBtn.disabled = false;
+
+      // show assistant reply
+      if(response && response.message){
+        appendMessage('assistant', response.message, {title: response.final ? 'Assistant — summary' : 'Assistant'});
+        conversation.push({role:'assistant', text:response.message});
+        localStorage.setItem('conversation', JSON.stringify(conversation)); // <-- ADD THIS
+      } else {
+        appendMessage('assistant', 'No response from server', {title:'Assistant'});
+      }
+
+      // if follow up question present, show it as assistant and (optionally) focus
+      if(response && response.missing_info && response.follow_up){
+        // assistant already included follow_up in message, but ensure input focused
+        userInput.focus();
+      }
+
+      // if final (all info collected) show success and extracted data
+      if(response && response.final){
+        // small summary box appended
+        const summaryHtml = renderExtracted(response.extracted);
+        appendMessage('assistant', summaryHtml, {title:'Claim received — extracted data'});
+
+        // final thank you message
+        appendMessage('assistant', '<span class="success">Claim received</span><br>We stored your report and will contact you shortly.');
+
+        // optionally clear conversation or disable input
+        userInput.disabled = true; sendBtn.disabled = true;
+      }
+    }
+
+    function renderExtracted(ex){
+      if(!ex) return '<div class="summary">No structured data returned.</div>';
+      const rows = Object.entries(ex).map(([k,v])=>`<div><strong>${friendlyKey(k)}:</strong> ${escapeHtml(String(v))}</div>`).join('');
+      return `<div class="summary">${rows}</div>`;
+    }
+
+    function friendlyKey(k){
+      return k.replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+    }
+    function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // event listeners
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleSend(); } });
+
+    // small welcome
+    appendMessage('assistant', 'Hello — please describe the incident in detail (date, time, location, what happened, injuries, people involved, estimated damage).');
+
+  </script>
+</body>
+</html>
